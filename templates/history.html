@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+{% block title %}History · HabitFlow{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1>History</h1>
+      <p class="muted">{{ month_name }} {{ year }} &middot; monthly report</p>
+    </div>
+    <div class="cal-nav">
+      <a href="{{ url_for('history', year=prev_year, month=prev_month) }}" class="btn btn-ghost">&larr; Previous</a>
+      <a href="{{ url_for('history') }}" class="btn btn-ghost">This month</a>
+      <a href="{{ url_for('history', year=next_year, month=next_month) }}" class="btn btn-ghost">Next &rarr;</a>
+    </div>
+  </div>
+
+  {% if habits %}
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th class="habit-col">Habit</th>
+            {% for d in days %}
+              <th class="{% if year == today.year and month == today.month and d == today.day %}today{% endif %}">{{ d }}</th>
+            {% endfor %}
+            <th>Done</th>
+            <th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for habit in habits %}
+            {% set habit_days = done.get(habit.id, []) %}
+            <tr>
+              <td class="habit-col">{{ habit.name }}</td>
+              {% for d in days %}
+                {% if d in habit_days %}
+                  <td class="done"
+                      tabindex="0"
+                      data-habit="{{ habit.name }}"
+                      data-day="{{ month_name }} {{ d }}, {{ year }}"
+                      data-time="{{ completion_times.get(habit.id, {}).get(d, 'Time not recorded') }}">✔</td>
+                {% else %}
+                  <td></td>
+                {% endif %}
+              {% endfor %}
+              <td class="total">{{ habit_days|length }}</td>
+              <td class="total">{{ ((habit_days|length * 100) // elapsed) if elapsed else 0 }}%</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="legend muted"><span class="legend-box done"></span> Completed &nbsp; <span class="legend-box today"></span> Today &nbsp; Hover or tap a check to see the time</p>
+  <div id="time-float" class="time-float" hidden>
+    <div class="time-float-kicker">Completed</div>
+    <div class="time-float-time"></div>
+    <div class="time-float-habit"></div>
+    <div class="time-float-day"></div>
+  </div>
+  {% else %}
+    <div class="card empty">
+      <div class="empty-icon">📅</div>
+      <h3>No history yet</h3>
+      <p class="muted">Add a habit and mark it as complete to see your report here.</p>
+      <a href="{{ url_for('add_habit') }}" class="btn btn-primary">+ Add habit</a>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const card = document.getElementById("time-float");
+  if (!card) return;
+
+  const timeEl = card.querySelector(".time-float-time");
+  const habitEl = card.querySelector(".time-float-habit");
+  const dayEl = card.querySelector(".time-float-day");
+  const cells = document.querySelectorAll(".history-table td.done");
+  let pinned = null;
+
+  function place(cell) {
+    const r = cell.getBoundingClientRect();
+    const pad = 10;
+    const width = card.offsetWidth || 200;
+    let left = r.left + r.width / 2 - width / 2;
+    left = Math.max(pad, Math.min(left, window.innerWidth - width - pad));
+    let top = r.top - card.offsetHeight - 10;
+    if (top < pad) top = r.bottom + 10;
+    card.style.left = left + "px";
+    card.style.top = top + "px";
+  }
+
+  function show(cell) {
+    timeEl.textContent = cell.dataset.time;
+    habitEl.textContent = cell.dataset.habit;
+    dayEl.textContent = cell.dataset.day;
+    card.hidden = false;
+    place(cell);
+  }
+
+  function hide() {
+    if (pinned) return;
+    card.hidden = true;
+  }
+
+  cells.forEach(function (cell) {
+    cell.addEventListener("mouseenter", function () { show(cell); });
+    cell.addEventListener("mouseleave", hide);
+    cell.addEventListener("focus", function () { show(cell); });
+    cell.addEventListener("blur", hide);
+    cell.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (pinned === cell) {
+        pinned = null;
+        card.hidden = true;
+      } else {
+        pinned = cell;
+        show(cell);
+      }
+    });
+  });
+
+  document.addEventListener("click", function () {
+    pinned = null;
+    card.hidden = true;
+  });
+
+  window.addEventListener("scroll", function () {
+    if (!card.hidden && pinned) place(pinned);
+  }, true);
+})();
+</script>
+{% endblock %}

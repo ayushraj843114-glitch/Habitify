@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard · HabitFlow{% endblock %}
+{% block content %}
+  {% set total = habits|length %}
+  {% set done_count = habits|selectattr('last_done', 'equalto', today)|list|length %}
+  {% set percent = (done_count * 100 // total) if total else 0 %}
+
+  <div class="page-head">
+    <div>
+      <h1>{{ greeting }}, {{ current_user.username }}</h1>
+      <p class="muted">{{ today.strftime('%A, %B %d, %Y') }}</p>
+    </div>
+    <a href="{{ url_for('add_habit') }}" class="btn btn-primary">+ New Habit</a>
+  </div>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat-label">Total habits</span>
+      <span class="stat-value">{{ total }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Completed today</span>
+      <span class="stat-value green">{{ done_count }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Remaining</span>
+      <span class="stat-value orange">{{ total - done_count }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Best current streak</span>
+      <span class="stat-value">🔥 {% if habits %}{{ habits|map(attribute='current_streak')|max }}{% else %}0{% endif %}</span>
+    </div>
+  </section>
+
+  <section class="card progress-card">
+    <div class="progress-top">
+      <strong>Today's progress</strong>
+      <span>{{ done_count }} of {{ total }} completed &middot; {{ percent }}%</span>
+    </div>
+    <div class="progress" role="progressbar" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" style="width: {{ percent }}%"></div>
+    </div>
+  </section>
+
+  <h3 class="section-title">Your habits</h3>
+
+  {% if habits %}
+    <div class="habit-list">
+      {% for habit in habits %}
+        {% set is_done = habit.last_done == today %}
+        <div class="habit {{ 'is-done' if is_done }}">
+          <form method="post" action="{{ url_for('toggle_habit', habit_id=habit.id) }}">
+            <button type="submit" class="check"
+                    title="{{ 'Undo completion' if is_done else 'Mark as complete' }}"
+                    aria-label="{{ 'Undo completion' if is_done else 'Mark as complete' }}">
+              <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+            </button>
+          </form>
+
+          <div class="habit-info">
+            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-meta">{% if is_done %}Completed today{% else %}Not completed yet{% endif %}</div>
+          </div>
+
+          <div class="week" aria-label="Last 7 days">
+            {% for d in week %}
+              <span class="dot {{ 'on' if d in week_done.get(habit.id, ()) }} {{ 'today' if d == today }}"
+                    title="{{ d.strftime('%a, %b %d') }}">{{ d.strftime('%a')[0] }}</span>
+            {% endfor %}
+          </div>
+
+          <span class="badge">🔥 {{ habit.current_streak }} day{{ 's' if habit.current_streak != 1 }}</span>
+
+          <form method="post" action="{{ url_for('delete_habit', habit_id=habit.id) }}"
+                onsubmit="return confirm('Delete this habit and all of its history?');">
+            <button type="submit" class="icon-btn" title="Delete habit" aria-label="Delete habit">
+              <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+            </button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card empty">
+      <div class="empty-icon">🌱</div>
+      <h3>No habits yet</h3>
+      <p class="muted">Create your first habit and start building a streak.</p>
+      <a href="{{ url_for('add_habit') }}" class="btn btn-primary">+ Add your first habit</a>
+    </div>
+  {% endif %}
+{% endblock %}

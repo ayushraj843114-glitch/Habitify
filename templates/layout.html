@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}HabitFlow{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% macro flashes() %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-stack">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+{% endmacro %}
+
+{% if current_user.is_authenticated %}
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-logo">🔥</span>
+        <span class="brand-name">HabitFlow</span>
+      </div>
+
+      <nav class="menu">
+        <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">
+          <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('add_habit') }}" class="{{ 'active' if request.endpoint == 'add_habit' }}">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          <span>New Habit</span>
+        </a>
+        <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+          <span>History</span>
+        </a>
+        <a href="{{ url_for('logout') }}" class="menu-logout-mobile">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Sign out</span>
+        </a>
+      </nav>
+
+      <div class="user-box">
+        <div class="avatar">{{ current_user.username[0]|upper }}</div>
+        <div class="user-info">
+          <strong>{{ current_user.username }}</strong>
+          <a href="{{ url_for('logout') }}">Sign out</a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      {{ flashes() }}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+{% else %}
+  <div class="auth-page">
+    <div class="auth-box">
+      <div class="auth-brand">
+        <span class="brand-logo">🔥</span>
+        <span class="brand-name">HabitFlow</span>
+      </div>
+      {{ flashes() }}
+      {% block auth %}{% endblock %}
+    </div>
+  </div>
+{% endif %}
+</body>
+</html>
